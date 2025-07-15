@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  postgres:
+    environment:
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - /opt/automotive/data/postgres:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  redis:
+    command: redis-server --requirepass ${REDIS_PASSWORD} --appendonly yes
+    volumes:
+      - /opt/automotive/data/redis:/data
+
+  backend:
+    environment:
+      SPRING_PROFILES_ACTIVE: production
+      DB_PASSWORD: ${DB_PASSWORD}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      EMAIL_USERNAME: ${EMAIL_USERNAME}
+      EMAIL_PASSWORD: ${EMAIL_PASSWORD}
+    volumes:
+      - /opt/automotive/uploads:/app/uploads
+      - /opt/automotive/logs:/app/logs
+
+  frontend:
+    build:
+      args:
+        VITE_API_BASE_URL: https://autotech.ph/api
+
+  nginx:
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - /etc/letsencrypt:/etc/nginx/ssl
+      - /opt/automotive/logs/nginx:/var/log/nginx
